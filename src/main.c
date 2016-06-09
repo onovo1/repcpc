@@ -75,7 +75,7 @@ static void usage(void)
 			 "\n"
 			 ,
 			 cli.lifetime,
-			 pcp_proto_name(cli.peer.proto),
+			 pcp_proto_name(cli.peer.map.proto),
 			 &srv_addr);
 }
 
@@ -96,8 +96,8 @@ static void pcp_resp_handler(int err, struct pcp_msg *msg, void *arg)
 		re_printf("recv %s %3usec [%s, %u, %J]\n",
 			  pcp_opcode_name(msg->hdr.opcode),
 			  msg->hdr.lifetime,
-			  pcp_proto_name(peer->proto),
-			  peer->int_port, &peer->ext_addr);
+			  pcp_proto_name(peer->map.proto),
+			  peer->map.int_port, &peer->map.ext_addr);
 	}
 
 	if (msg->hdr.result != PCP_SUCCESS) {
@@ -125,14 +125,14 @@ int main(int argc, char *argv[])
 	bool *prefer_fail = NULL;
 	int err = 0;
 
-	sa_init(&cli.peer.ext_addr, AF_UNSPEC);
+	sa_init(&cli.peer.map.ext_addr, AF_UNSPEC);
 	sa_init(&cli.peer.remote_addr, AF_UNSPEC);
 	sa_init(&cli.pcp_server, AF_UNSPEC);
 
 	/* default values */
-	cli.peer.proto = IPPROTO_UDP;
+	cli.peer.map.proto = IPPROTO_UDP;
 	cli.lifetime = 600;
-	rand_bytes(cli.peer.nonce, sizeof cli.peer.nonce);
+	rand_bytes(cli.peer.map.nonce, sizeof cli.peer.map.nonce);
 
 	err = libre_init();
 	if (err)
@@ -157,8 +157,8 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'p':
-			cli.peer.proto = resolve_protocol(optarg);
-			if (cli.peer.proto == 0) {
+			cli.peer.map.proto = resolve_protocol(optarg);
+			if (cli.peer.map.proto == 0) {
 				re_fprintf(stderr,
 					   "unsupported protocol `%s'\n",
 					   optarg);
@@ -167,11 +167,11 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'i':
-			cli.peer.int_port = atoi(optarg);
+			cli.peer.map.int_port = atoi(optarg);
 			break;
 
 		case 'e':
-			err = sa_decode(&cli.peer.ext_addr,
+			err = sa_decode(&cli.peer.map.ext_addr,
 					optarg, strlen(optarg));
 			if (err) {
 				re_fprintf(stderr,
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'n':
-			err = str_hex(cli.peer.nonce, sizeof cli.peer.nonce,
+			err = str_hex(cli.peer.map.nonce, sizeof cli.peer.map.nonce,
 				      optarg);
 			if (err) {
 				re_fprintf(stderr,
@@ -284,8 +284,8 @@ int main(int argc, char *argv[])
 	if (AF_UNSPEC == sa_af(&cli.pcp_server))
 		get_default_pcpserver(AF_INET, &cli.pcp_server);
 
-	if (AF_UNSPEC == sa_af(&cli.peer.ext_addr)) {
-		sa_init(&cli.peer.ext_addr, sa_af(&cli.pcp_server));
+	if (AF_UNSPEC == sa_af(&cli.peer.map.ext_addr)) {
+		sa_init(&cli.peer.map.ext_addr, sa_af(&cli.pcp_server));
 	}
 
 	cli.opcode = resolve_opcode(argv[optind]);
@@ -305,15 +305,15 @@ int main(int argc, char *argv[])
 			  pcp_opcode_name(cli.opcode), &cli.pcp_server);
 		re_printf("lifetime = %u sec, protocol = %s, "
 			  "internal_port = %u, external = %J\n",
-			  cli.lifetime, pcp_proto_name(cli.peer.proto),
-			  cli.peer.int_port, &cli.peer.ext_addr);
+			  cli.lifetime, pcp_proto_name(cli.peer.map.proto),
+			  cli.peer.map.int_port, &cli.peer.map.ext_addr);
 		re_printf("\n");
 	}
 	else {
 		re_printf("send %s %3usec [%s, %u, %J]\n",
 			  pcp_opcode_name(cli.opcode),
-			  cli.lifetime, pcp_proto_name(cli.peer.proto),
-			  cli.peer.int_port, &cli.peer.ext_addr);
+			  cli.lifetime, pcp_proto_name(cli.peer.map.proto),
+			  cli.peer.map.int_port, &cli.peer.map.ext_addr);
 	}
 
 	if (cli.opcode == PCP_ANNOUNCE)
